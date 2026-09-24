@@ -14,12 +14,18 @@ class Store:
         self._tables: dict[str, list[dict[str, Any]]] = {
             name: [dict(row) for row in rows] for name, rows in SEED_ROWS.items()
         }
+        # 动作留痕（如冷库停用记录）单独存放，不计入运营概览的业务模块统计
+        self._action_logs: dict[str, list[dict[str, Any]]] = {}
 
     def module_names(self) -> list[str]:
         return sorted(self._tables)
 
     def rows(self, module: str) -> list[dict[str, Any]]:
         return self._tables.setdefault(module, [])
+
+    def action_logs(self, module: str) -> list[dict[str, Any]]:
+        """取出某模块的动作留痕表；动作记录不影响原有档案与概览口径。"""
+        return self._action_logs.setdefault(module, [])
 
     def find(self, module: str, entry_id: int) -> dict[str, Any] | None:
         for row in self.rows(module):

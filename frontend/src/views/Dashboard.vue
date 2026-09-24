@@ -12,6 +12,12 @@
         <strong class="stat-value">{{ card.value }}</strong>
       </article>
     </div>
+
+    <div v-if="loadError" class="inline-error">
+      <span>{{ loadError }}</span>
+      <button class="btn" type="button" @click="loadOverview">重新加载</button>
+    </div>
+
     <table class="data-table">
       <thead>
         <tr><th>业务模块</th><th>今日新增</th><th>待处理</th><th>异常量</th></tr>
@@ -23,6 +29,9 @@
           <td>{{ row.pending }}</td>
           <td>{{ row.abnormal }}</td>
         </tr>
+        <tr v-if="!moduleRows.length && !loadError">
+          <td colspan="4" class="empty-state">暂无业务数据，各项指标均为 0；登记业务记录后这里会自动汇总。</td>
+        </tr>
       </tbody>
     </table>
   </section>
@@ -31,24 +40,44 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 
-import { fetchJson } from '@/api/client'
+import { request } from '@/api/client'
 
 type Overview = {
   cards: { label: string; value: number }[]
   modules: { name: string; created: number; pending: number; abnormal: number }[]
 }
 
-const cards = ref<Overview['cards']>([])
-const moduleRows = ref<Overview['modules']>([])
+// 没有数据或读取失败时，卡片也保持完整的四项并显示零值，不留白。
+const ZERO_CARDS: Overview['cards'] = [
+  { label: '业务模块', value: 0 },
+  { label: '今日新增', value: 0 },
+  { label: '待处理', value: 0 },
+  { label: '异常量', value: 0 },
+]
 
-onMounted(async () => {
+const cards = ref<Overview['cards']>(ZERO_CARDS.map((card) => ({ ...card })))
+const moduleRows = ref<Overview['modules']>([])
+const loadError = ref('')
+
+async function loadOverview() {
+  loadError.value = ''
   try {
-    const payload = await fetchJson<Overview>('/api/overview')
-    cards.value = payload.cards
-    moduleRows.value = payload.modules
-  } catch {
-    cards.value = [{"label": "业务模块", "value": 0}, {"label": "今日新增", "value": 0}]
-    moduleRows.value = [{"name": "冷链订单", "created": 0, "pending": 0, "abnormal": 0}, {"name": "运单管理", "created": 0, "pending": 0, "abnormal": 0}, {"name": "冷藏车管理", "created": 0, "pending": 0, "abnormal": 0}, {"name": "司机管理", "created": 0, "pending": 0, "abnormal": 0}, {"name": "温控监控", "created": 0, "pending": 0, "abnormal": 0}, {"name": "温度异常", "created": 0, "pending": 0, "abnormal": 0}, {"name": "冷库管理", "created": 0, "pending": 0, "abnormal": 0}, {"name": "入库管理", "created": 0, "pending": 0, "abnormal": 0}, {"name": "出库管理", "created": 0, "pending": 0, "abnormal": 0}, {"name": "库存管理", "created": 0, "pending": 0, "abnormal": 0}, {"name": "批次追溯", "created": 0, "pending": 0, "abnormal": 0}, {"name": "质检管理", "created": 0, "pending": 0, "abnormal": 0}, {"name": "线路管理", "created": 0, "pending": 0, "abnormal": 0}, {"name": "调度派单", "created": 0, "pending": 0, "abnormal": 0}, {"name": "温控设备", "created": 0, "pending": 0, "abnormal": 0}, {"name": "维保工单", "created": 0, "pending": 0, "abnormal": 0}, {"name": "告警中心", "created": 0, "pending": 0, "abnormal": 0}, {"name": "客户管理", "created": 0, "pending": 0, "abnormal": 0}, {"name": "计费结算", "created": 0, "pending": 0, "abnormal": 0}, {"name": "报表导出", "created": 0, "pending": 0, "abnormal": 0}, {"name": "系统设置", "created": 0, "pending": 0, "abnormal": 0}]
+    const response = await request('/api/overview')
+    if (!response.ok) {
+      throw new Error(`接口返回 ${response.status}，概览数据未更新，当前显示零值`)
+    }
+    const payload = (await response.json()) as Overview
+    // 后端缺项时用零值补齐，保证四张卡片恒在。
+    cards.value = ZERO_CARDS.map((zero) => {
+      const found = payload.cards?.find((card) => card.label === zero.label)
+      return found ? { label: zero.label, value: Number(found.value) || 0 } : { ...zero }
+    })
+    moduleRows.value = payload.modules ?? []
+  } catch (error) {
+    cards.value = ZERO_CARDS.map((card) => ({ ...card }))
+    loadError.value = error instanceof Error ? error.message : '运营概览读取失败，当前显示零值'
   }
-})
+}
+
+onMounted(loadOverview)
 </script>

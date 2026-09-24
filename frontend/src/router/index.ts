@@ -8,6 +8,7 @@ const Driver = () => import('@/views/driver/index.vue')
 const Temperature = () => import('@/views/temperature/index.vue')
 const Excursion = () => import('@/views/excursion/index.vue')
 const Warehouse = () => import('@/views/warehouse/index.vue')
+const WarehouseDetail = () => import('@/views/warehouse/detail.vue')
 const Inbound = () => import('@/views/inbound/index.vue')
 const Outbound = () => import('@/views/outbound/index.vue')
 const Inventory = () => import('@/views/inventory/index.vue')
@@ -34,6 +35,7 @@ const router = createRouter({
     { path: '/temperature', name: 'temperature', component: Temperature },
     { path: '/excursion', name: 'excursion', component: Excursion },
     { path: '/warehouse', name: 'warehouse', component: Warehouse },
+    { path: '/warehouse/:id', name: 'warehouse-detail', component: WarehouseDetail },
     { path: '/inbound', name: 'inbound', component: Inbound },
     { path: '/outbound', name: 'outbound', component: Outbound },
     { path: '/inventory', name: 'inventory', component: Inventory },
