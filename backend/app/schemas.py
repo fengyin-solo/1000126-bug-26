@@ -26,6 +26,7 @@ class EntryPayload(BaseModel):
 
     values: dict[str, Any] = Field(default_factory=dict)
     remark: str | None = None
+    client_token: str | None = None  # 前端防重令牌：同一令牌只允许生效一次
 
 
 
